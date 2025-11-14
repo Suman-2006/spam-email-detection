@@ -1,10 +1,8 @@
-# Congratulations! You’ve won a brand new iPhone! Click here to claim your prize: [bit.ly/win-now]
-#You have an urgent message from PayPal. Please update your account information here: [phishingsite.com]
-
 # spam_detector.py
 
+# Logistic Regression implementation
 
-#libraries
+# libraries
 
 # Data handling
 import pandas as pd
@@ -105,3 +103,222 @@ if st.button("Predict"):
 # Classification report in console
 print("Accuracy:", accuracy_score(y_test, y_pred))
 print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+
+# naive bayes implementation
+
+# Data handling
+import pandas as pd  
+
+# text processing
+import string
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer  
+
+# Machine learning
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB     # <-- CHANGED
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score  
+
+# Visualization
+import matplotlib.pyplot as plt
+import seaborn as sns  
+
+#  web app
+import streamlit as st  
+
+# Download NLTK data
+nltk.download('stopwords')
+
+# Load and prepare dataset
+data = pd.read_csv("spam.csv", encoding='latin-1')
+data = data[['v1', 'v2']]
+data.columns = ['label', 'message']
+
+# Convert labels to binary
+data['label'] = data['label'].map({'ham': 0, 'spam': 1})
+
+# Removes common words and processes text
+stemmer = PorterStemmer()
+stop_words = set(stopwords.words('english'))
+
+def clean_text(text):
+    text = text.lower()
+    text = ''.join([ch for ch in text if ch not in string.punctuation])
+    words = text.split()
+    words = [stemmer.stem(w) for w in words if w not in stop_words]
+    return ' '.join(words)
+
+data['cleaned'] = data['message'].apply(clean_text)
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    data['cleaned'], data['label'], test_size=0.2, random_state=42
+)
+
+# TF-IDF Vectorization
+tfidf = TfidfVectorizer(max_features=3000)
+X_train_vec = tfidf.fit_transform(X_train)
+X_test_vec = tfidf.transform(X_test)
+
+# Train Model (CHANGED TO NAIVE BAYES)
+model = MultinomialNB()        # <-- Only this line changed
+model.fit(X_train_vec, y_train)
+
+# Evaluate
+y_pred = model.predict(X_test_vec)
+cm = confusion_matrix(y_test, y_pred)
+
+# Confusion Matrix Visualization
+plt.figure(figsize=(5, 4))
+sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix')
+plt.show()
+
+# Web app
+st.title("📧 Spam Email Detector")
+st.write("Enter a message below to check if it's spam or not:")
+
+user_input = st.text_area("Message:")
+
+if st.button("Predict"):
+    cleaned_input = clean_text(user_input)
+    input_vec = tfidf.transform([cleaned_input])
+    prediction = model.predict(input_vec)[0]
+    confidence = model.predict_proba(input_vec).max()
+
+    if prediction == 1:
+        st.error(f"🚫 SPAM (Confidence: {confidence:.2f})")
+    else:
+        st.success(f"✅ HAM (Not Spam) (Confidence: {confidence:.2f})")
+
+# Print report in console
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+
+# cpmarison between Logistic Regression and Naive Bayes
+
+# Data handling
+import pandas as pd  
+
+# text processing
+import string
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer  
+
+# Machine learning
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score  
+
+# Visualization
+import matplotlib.pyplot as plt
+import seaborn as sns  
+
+# web app
+import streamlit as st  
+
+# Download NLTK stopwords
+nltk.download('stopwords')
+
+# Load dataset
+data = pd.read_csv("spam.csv", encoding='latin-1')
+data = data[['v1', 'v2']]
+data.columns = ['label', 'message']
+
+data['label'] = data['label'].map({'ham': 0, 'spam': 1})
+
+# Clean text
+stemmer = PorterStemmer()
+stop_words = set(stopwords.words('english'))
+
+def clean_text(text):
+    text = text.lower()
+    text = ''.join([ch for ch in text if ch not in string.punctuation])
+    words = text.split()
+    words = [stemmer.stem(w) for w in words if w not in stop_words]
+    return ' '.join(words)
+
+data['cleaned'] = data['message'].apply(clean_text)
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    data['cleaned'], data['label'], test_size=0.2, random_state=42
+)
+
+# TF-IDF Vectorization
+tfidf = TfidfVectorizer(max_features=3000)
+X_train_vec = tfidf.fit_transform(X_train)
+X_test_vec = tfidf.transform(X_test)
+
+
+# Logistic Regression Model
+log_model = LogisticRegression()
+log_model.fit(X_train_vec, y_train)
+log_pred = log_model.predict(X_test_vec)
+cm_log = confusion_matrix(y_test, log_pred)
+
+
+# Naive Bayes Model
+nb_model = MultinomialNB()
+nb_model.fit(X_train_vec, y_train)
+nb_pred = nb_model.predict(X_test_vec)
+cm_nb = confusion_matrix(y_test, nb_pred)
+
+#ACCURACY + REPORT IN TERMINAL ONLY
+print("\n==============================")
+print("LOGISTIC REGRESSION RESULTS")
+print("==============================")
+print("Accuracy:", accuracy_score(y_test, log_pred))
+print("\nClassification Report:\n", classification_report(y_test, log_pred))
+print("\nConfusion Matrix:\n", cm_log)
+
+print("\n==============================")
+print("NAIVE BAYES RESULTS")
+print("==============================")
+print("Accuracy:", accuracy_score(y_test, nb_pred))
+print("\nClassification Report:\n", classification_report(y_test, nb_pred))
+print("\nConfusion Matrix:\n", cm_nb)
+
+
+# SAVE FIGURES IN FOLDER (NOT STREAMLIT)
+plt.figure(figsize=(12, 5))
+
+plt.subplot(1, 2, 1)
+sns.heatmap(cm_log, annot=True, fmt="d", cmap="Greens")
+plt.title("Confusion Matrix - Logistic Regression")
+
+plt.subplot(1, 2, 2)
+sns.heatmap(cm_nb, annot=True, fmt="d", cmap="Blues")
+plt.title("Confusion Matrix - Naive Bayes")
+
+plt.tight_layout()
+plt.savefig("confusion_matrices.png")  # saved in same folder
+plt.close()
+
+print("\nImage saved successfully as confusion_matrices.png")
+
+# STREAMLIT APP (Only Prediction)
+st.title("📧 Spam Email Detector")
+st.write("Enter a message below to check if it's spam or not:")
+
+user_input = st.text_area("Message:")
+
+if st.button("Predict"):
+    cleaned_input = clean_text(user_input)
+    input_vec = tfidf.transform([cleaned_input])
+    prediction = log_model.predict(input_vec)[0]
+    confidence = log_model.predict_proba(input_vec).max()
+
+    if prediction == 1:
+        st.error(f"🚫 SPAM (Confidence: {confidence:.2f})")
+    else:
+        st.success(f"✅ HAM (Not Spam) (Confidence: {confidence:.2f})")
